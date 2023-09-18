@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using OrderApi.Data;
+using OrderApi.Helpers;
 using OrderApi.Models;
 using RestSharp;
 using SharedModels;
@@ -40,7 +41,7 @@ namespace OrderApi.Controllers
 
         // POST orders
         [HttpPost]
-        public IActionResult Post([FromBody]Order order)
+        public async Task<IActionResult> Post([FromBody] Order order) // Make the method asynchronous
         {
             if (order == null)
             {
@@ -56,6 +57,12 @@ namespace OrderApi.Controllers
                     // Create order.
                     order.Status = Order.OrderStatus.completed;
                     var newOrder = repository.Add(order);
+
+                    //Send email
+                    RestClient c = new RestClient("http://localhost:5009/");
+                    var request = new RestRequest("Email");
+                    await c.ExecuteAsync(request); // Await the API call
+
                     return CreatedAtRoute("GetOrder",
                         new { id = newOrder.Id }, newOrder);
                 }
@@ -73,7 +80,7 @@ namespace OrderApi.Controllers
                 // Call product service to get the product ordered.
                 // You may need to change the port number in the BaseUrl below
                 // before you can run the request.
-                RestClient c = new RestClient("https://localhost:5001/products/");
+                RestClient c = new RestClient("http://localhost:5000/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
                 var response = c.GetAsync<ProductDto>(request);
                 response.Wait();
@@ -93,7 +100,7 @@ namespace OrderApi.Controllers
                 // Call product service to get the product ordered.
                 // You may need to change the port number in the BaseUrl below
                 // before you can run the request.
-                RestClient c = new RestClient("https://localhost:5001/products/");
+                RestClient c = new RestClient("http://localhost:5000/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
                 var response = c.GetAsync<ProductDto>(request);
                 response.Wait();
