@@ -112,5 +112,40 @@ namespace OrderApi.Controllers
             return true;
         }
 
+        // tilføj update function med ændring af status til shipped eller cancelled. husk update product in stock
+        //order.status = OrderDto.OrderStatus.shipped;
+        //order.status = OrderDto.OrderStatus.cancelled;
+
+
+        //email function  -- need fixing
+
+        /*
+        public async Task<String> SendEmail(OrderDto order) {
+            // http://emailapi/Email/   docker-compose url
+            RestClient _client = new RestClient("http://localhost:5004/Email/");
+            // Process the order...
+            // needs some fixing
+            var customerId = order.customerId;
+            RestClient customer_client = new RestClient("http://localhost:5001/Customer/");
+            var customerEmail = new RestRequest("Email", Method.Get);
+            // Then send the invoice email.
+            var request = new RestRequest("email", Method.Post);
+            request.AddJsonBody(new { EmailAddress = customerEmail, InvoiceContent = "..." });
+
+            var response = await _client.ExecuteAsync<string>(request);
+
+            if (response.IsSuccessful)
+            {
+                Console.WriteLine(response.Data);
+            }
+            else
+            {
+                // Handle error...
+                Console.WriteLine("No customer email was found, please try again");
+            }
+            return "";
+        
+        } */
+
     }
 }

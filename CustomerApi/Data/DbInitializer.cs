@@ -24,6 +24,7 @@ namespace CustomerApi.Data
                 new Customer { CompanyName = "TestCompany", RegistrationNumber = 1, Email = "test@mail.dk", PhoneNumber = "75757575", AddressBilling = "testvej", AddressShipping = "testvej 2", CreditStanding = true }
             };
 
+            Console.WriteLine(customers);
 
         context.Customers.AddRange(customers);
             context.SaveChanges();
