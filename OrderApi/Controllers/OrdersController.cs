@@ -6,6 +6,7 @@ using OrderApi.Helpers;
 using OrderApi.Models;
 using RestSharp;
 using SharedModels;
+using SharedModels.Services;
 
 namespace OrderApi.Controllers
 {
@@ -14,10 +15,12 @@ namespace OrderApi.Controllers
     public class OrdersController : ControllerBase
     {
         private readonly IRepository<Order> repository;
+        private readonly EmailService _emailService;
 
-        public OrdersController(IRepository<Order> repos)
+        public OrdersController(IRepository<Order> repos, EmailService emailService)
         {
             repository = repos;
+            _emailService = emailService;
         }
 
         // GET: orders
@@ -59,9 +62,7 @@ namespace OrderApi.Controllers
                     var newOrder = repository.Add(order);
 
                     //Send email
-                    RestClient c = new RestClient("http://localhost:5009/");
-                    var request = new RestRequest("Email");
-                    await c.ExecuteAsync(request); // Await the API call
+                   await _emailService.SendEmailAsync();
 
                     return CreatedAtRoute("GetOrder",
                         new { id = newOrder.Id }, newOrder);
