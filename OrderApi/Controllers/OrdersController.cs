@@ -58,11 +58,13 @@ namespace OrderApi.Controllers
                 if (UpdateItemsReserved(order))
                 {
                     // Create order.
-                    order.Status = Order.OrderStatus.completed;
                     var newOrder = repository.Add(order);
 
-                    //Send email
+                    // Send email
                    await _emailService.SendEmailAsync();
+
+                    // Set status to completed
+                    order.Status = Order.OrderStatus.completed;
 
                     return CreatedAtRoute("GetOrder",
                         new { id = newOrder.Id }, newOrder);
@@ -120,40 +122,41 @@ namespace OrderApi.Controllers
             return true;
         }
 
-        // tilføj update function med ændring af status til shipped eller cancelled. husk update product in stock
-        //order.status = OrderDto.OrderStatus.shipped;
-        //order.status = OrderDto.OrderStatus.cancelled;
-
-
-        //email function  -- need fixing
-
-        /*
-        public async Task<String> SendEmail(OrderDto order) {
-            // http://emailapi/Email/   docker-compose url
-            RestClient _client = new RestClient("http://localhost:5004/Email/");
-            // Process the order...
-            // needs some fixing
-            var customerId = order.customerId;
-            RestClient customer_client = new RestClient("http://localhost:5001/Customer/");
-            var customerEmail = new RestRequest("Email", Method.Get);
-            // Then send the invoice email.
-            var request = new RestRequest("email", Method.Post);
-            request.AddJsonBody(new { EmailAddress = customerEmail, InvoiceContent = "..." });
-
-            var response = await _client.ExecuteAsync<string>(request);
-
-            if (response.IsSuccessful)
-            {
-                Console.WriteLine(response.Data);
-            }
-            else
-            {
-                // Handle error...
-                Console.WriteLine("No customer email was found, please try again");
-            }
-            return "";
         
-        } */
+        // Update status function
+        // mangler stadig noget arbejde - har ikke lige gjort mig tanker om hvordan den skal kunne kaldes endnu og den skal vel også tage imod
+        // et id som der skal opdateres på. men dette er et meget godt udkast taget i betragtning hvor zank jeg er lige nu xD
+        private async Task<bool> UpdateStatus(Order order)
+        {
+            RestClient c = new RestClient("http://localhost:5002/Order/");
+            var getRequest = new RestRequest(order.Id.ToString());
+            var getResponse = await c.GetAsync<Order>(getRequest);
+
+            if (getResponse != null)
+            {
+                if (order.Status == Order.OrderStatus.completed)
+                {
+                    getResponse.Status = Order.OrderStatus.shipped;
+                    // her skal product in stock opdateres (-)
+                }
+                else
+                {
+                    getResponse.Status = Order.OrderStatus.cancelled;
+                    // her skal product reserved opdateres (+) (i guess?)
+                }
+
+                var updateRequest = new RestRequest(getResponse.Id.ToString(), Method.Put);
+                updateRequest.AddJsonBody(getResponse);
+                var updateResponse = await c.ExecuteAsync(updateRequest);
+
+                if (updateResponse.IsSuccessful)
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
     }
 }
