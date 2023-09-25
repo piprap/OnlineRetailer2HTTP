@@ -111,6 +111,8 @@ namespace OrderApi.Controllers
                 var response = c.GetAsync<ProductDto>(request);
                 response.Wait();
                 var orderedProduct = response.Result;
+
+                orderedProduct.ItemsInStock -= orderLine.Quantity;
                 orderedProduct.ItemsReserved += orderLine.Quantity;
 
                 // Call product service to update the number of items reserved
@@ -168,7 +170,7 @@ namespace OrderApi.Controllers
         }
 
 
-        // PUT customers/5
+        // PUT order/5
         [HttpPut("{id}")]
         public IActionResult Put(int id, [FromBody] Order order)
         {
@@ -230,6 +232,7 @@ namespace OrderApi.Controllers
                 var orderedProduct = response.Result;
 
                 orderedProduct.ItemsReserved -= orderLine.Quantity;
+                orderedProduct.ItemsInStock += orderLine.Quantity;
 
 
                 var updateRequest = new RestRequest(response.Id.ToString());
@@ -243,22 +246,45 @@ namespace OrderApi.Controllers
 
             // Add code to implement this method.
         }
-     /*
+     
         // PUT orders/5/ship
         // This action method ships an order and publishes an OrderStatusChangedMessage.
         // with topic set to "shipped".
         [HttpPut("{id}/ship")]
         public async Task<IActionResult> Ship(int id)
         {
-            var getResponse = await _orderService.UpdateOrderAsync(id);
+            var getResponse = repository.Get(id);
+            //  var getResponse = await _orderService.UpdateOrderAsync(id);
 
-            if (getResponse != null)
+            if (getResponse == null)
             {
                 return BadRequest("No order found");
             }
-
             getResponse.Status = Order.OrderStatus.shipped;
 
+
+
+            repository.Edit(getResponse);
+
+
+            foreach (var orderLine in getResponse.OrderLines)
+            {
+
+                RestClient c = new RestClient("http://product-service/products/");
+                var request = new RestRequest(orderLine.ProductId.ToString());
+                var response = c.GetAsync<ProductDto>(request);
+                response.Wait();
+                var orderedProduct = response.Result;
+
+                orderedProduct.ItemsReserved -= orderLine.Quantity;
+                orderedProduct.ItemsInStock -= orderLine.Quantity;
+
+                var updateRequest = new RestRequest(response.Id.ToString());
+                updateRequest.AddJsonBody(orderedProduct);
+                var updateResponse = c.PutAsync(updateRequest);
+                updateResponse.Wait();
+
+            }
             return Ok("order on the way");
 
             // Add code to implement this method.
@@ -270,20 +296,24 @@ namespace OrderApi.Controllers
         [HttpPut("{id}/pay")]
         public async Task<IActionResult> Pay(int id)
         {
-            var getResponse = await _orderService.UpdateOrderAsync(id);
+            var getResponse = repository.Get(id);
+            //  var getResponse = await _orderService.UpdateOrderAsync(id);
 
-            if (getResponse != null)
+            if (getResponse == null)
             {
                 return BadRequest("No order found");
             }
-
             getResponse.Status = Order.OrderStatus.paid;
+
+            //get customer update creditstanding?
+
+            repository.Edit(getResponse);
 
             return Ok("$$");
 
             // Add code to implement this method.
         }
-     */
+     
 
 
     }
