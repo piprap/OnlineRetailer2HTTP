@@ -10,10 +10,10 @@
 
         public enum OrderStatus
         {
-            cancelled,
-            completed,
-            shipped,
-            paid
+            cancelled, // -product reservation * quantity 
+            completed, // +prodcut reservation * quantity 
+            shipped, // +
+            paid //
         }
     }
 

@@ -16,11 +16,14 @@ namespace OrderApi.Controllers
     {
         private readonly IRepository<Order> repository;
         private readonly EmailService _emailService;
+      //  private readonly OrderService _orderService;
 
-        public OrdersController(IRepository<Order> repos, EmailService emailService)
+
+        public OrdersController(IRepository<Order> repos, EmailService emailService/*, OrderService orderService*/)
         {
             repository = repos;
             _emailService = emailService;
+            //_orderService = orderService;
         }
 
         // GET: orders
@@ -126,11 +129,17 @@ namespace OrderApi.Controllers
         // Update status function
         // mangler stadig noget arbejde - har ikke lige gjort mig tanker om hvordan den skal kunne kaldes endnu og den skal vel også tage imod
         // et id som der skal opdateres på. men dette er et meget godt udkast taget i betragtning hvor zank jeg er lige nu xD
-        private async Task<bool> UpdateStatus(Order order)
+        private async Task<bool> UpdateStatus(Order order, string newStatus) //parse ny status
         {
             RestClient c = new RestClient("http://order-service/Order/");
             var getRequest = new RestRequest(order.Id.ToString());
             var getResponse = await c.GetAsync<Order>(getRequest);
+
+            if(newStatus == "shipped")
+            {
+                order.Status = Order.OrderStatus.shipped;
+            }
+
 
             if (getResponse != null)
             {
@@ -157,6 +166,125 @@ namespace OrderApi.Controllers
 
             return false;
         }
+
+
+        // PUT customers/5
+        [HttpPut("{id}")]
+        public IActionResult Put(int id, [FromBody] Order order)
+        {
+            if (order == null || order.Id != id)
+            {
+                return BadRequest();
+            }
+
+            var modifiedOrder = repository.Get(id);
+
+            Console.WriteLine("original order OrderLines: " + order.OrderLines);
+
+            Console.WriteLine("BEFORE OrderLines: " + modifiedOrder.OrderLines);
+
+            if (modifiedOrder == null)
+            {
+                return NotFound();
+            }
+
+            modifiedOrder.CustomerId = order.CustomerId;
+            modifiedOrder.Status = order.Status;
+
+
+            repository.Edit(modifiedOrder);
+            return Ok(200);
+        }
+
+        // PUT orders/5/cancel
+        // This action method cancels an order and publishes an OrderStatusChangedMessage
+        // with topic set to "cancelled".
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> Cancel(int id)
+        {
+            /*RestClient c = new RestClient("http://order-service/Order/");
+            var getRequest = new RestRequest(id.ToString());
+            var getResponse = await c.GetAsync<Order>(getRequest);*/
+
+            var getResponse = repository.Get(id);
+          //  var getResponse = await _orderService.UpdateOrderAsync(id);
+
+            if (getResponse == null)
+            {
+                return BadRequest("No order found");
+            }
+            getResponse.Status = Order.OrderStatus.cancelled;
+
+
+
+            repository.Edit(getResponse);
+
+
+            foreach (var orderLine in getResponse.OrderLines)
+            {
+
+                RestClient c = new RestClient("http://product-service/products/");
+                var request = new RestRequest(orderLine.ProductId.ToString());
+                var response = c.GetAsync<ProductDto>(request);
+                response.Wait();
+                var orderedProduct = response.Result;
+
+                orderedProduct.ItemsReserved -= orderLine.Quantity;
+
+
+                var updateRequest = new RestRequest(response.Id.ToString());
+                updateRequest.AddJsonBody(orderedProduct);
+                var updateResponse = c.PutAsync(updateRequest);
+                updateResponse.Wait();
+
+            }
+
+            return Ok("Very bad order cancel :(");
+
+            // Add code to implement this method.
+        }
+     /*
+        // PUT orders/5/ship
+        // This action method ships an order and publishes an OrderStatusChangedMessage.
+        // with topic set to "shipped".
+        [HttpPut("{id}/ship")]
+        public async Task<IActionResult> Ship(int id)
+        {
+            var getResponse = await _orderService.UpdateOrderAsync(id);
+
+            if (getResponse != null)
+            {
+                return BadRequest("No order found");
+            }
+
+            getResponse.Status = Order.OrderStatus.shipped;
+
+            return Ok("order on the way");
+
+            // Add code to implement this method.
+        }
+
+        // PUT orders/5/pay
+        // This action method marks an order as paid and publishes a CreditStandingChangedMessage
+        // (which have not yet been implemented), if the credit standing changes.
+        [HttpPut("{id}/pay")]
+        public async Task<IActionResult> Pay(int id)
+        {
+            var getResponse = await _orderService.UpdateOrderAsync(id);
+
+            if (getResponse != null)
+            {
+                return BadRequest("No order found");
+            }
+
+            getResponse.Status = Order.OrderStatus.paid;
+
+            return Ok("$$");
+
+            // Add code to implement this method.
+        }
+     */
+
 
     }
 }
