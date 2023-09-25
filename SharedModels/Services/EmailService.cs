@@ -10,7 +10,7 @@ namespace SharedModels.Services
     {
         public async Task SendEmailAsync()
         {
-            RestClient c = new RestClient("http://localhost:5009/");
+            RestClient c = new RestClient("http://email-service/");
             var request = new RestRequest("Email", Method.Post);
             await c.ExecuteAsync(request);
         }

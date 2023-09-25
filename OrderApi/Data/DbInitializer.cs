@@ -23,6 +23,8 @@ namespace OrderApi.Data
             {
                 new Order {
                     Date = DateTime.Today,
+                    CustomerId = 1,
+                    Status = Order.OrderStatus.completed,
                     OrderLines = new List<OrderLine>{
                         new OrderLine { ProductId = 1, Quantity = 2 } }
                 }

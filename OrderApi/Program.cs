@@ -18,7 +18,7 @@ builder.Services.AddScoped<EmailService>();
 // Register database initializer for dependency injection
 builder.Services.AddTransient<IDbInitializer, DbInitializer>();
 
-builder.Services.AddSingleton(new EmailApiClient("http://localhost:5009/Email/"));
+builder.Services.AddSingleton(new EmailApiClient("http://email-service/Email/"));
 
 builder.Services.AddControllers();
 
@@ -29,11 +29,17 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// if (app.Environment.IsDevelopment()) 
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseCors(config => config
+    .AllowAnyOrigin()
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+);
 
 // Initialize the database.
 using (var scope = app.Services.CreateScope())

@@ -83,7 +83,7 @@ namespace OrderApi.Controllers
                 // Call product service to get the product ordered.
                 // You may need to change the port number in the BaseUrl below
                 // before you can run the request.
-                RestClient c = new RestClient("http://localhost:5000/products/");
+                RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
                 var response = c.GetAsync<ProductDto>(request);
                 response.Wait();
@@ -103,7 +103,7 @@ namespace OrderApi.Controllers
                 // Call product service to get the product ordered.
                 // You may need to change the port number in the BaseUrl below
                 // before you can run the request.
-                RestClient c = new RestClient("http://localhost:5000/products/");
+                RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
                 var response = c.GetAsync<ProductDto>(request);
                 response.Wait();
@@ -128,7 +128,7 @@ namespace OrderApi.Controllers
         // et id som der skal opdateres på. men dette er et meget godt udkast taget i betragtning hvor zank jeg er lige nu xD
         private async Task<bool> UpdateStatus(Order order)
         {
-            RestClient c = new RestClient("http://localhost:5002/Order/");
+            RestClient c = new RestClient("http://order-service/Order/");
             var getRequest = new RestRequest(order.Id.ToString());
             var getResponse = await c.GetAsync<Order>(getRequest);
 
