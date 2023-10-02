@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ProductApi.Data;
 using ProductApi.Models;
 using SharedModels;
+using System.Threading.Tasks;
 
 namespace ProductApi.Controllers
 {
@@ -19,12 +20,11 @@ namespace ProductApi.Controllers
             productConverter = converter;
         }
 
-        // GET products
         [HttpGet]
-        public IEnumerable<ProductDto> Get()
+        public async Task<IEnumerable<ProductDto>> GetAsync()
         {
             var productDtoList = new List<ProductDto>();
-            foreach (var product in repository.GetAll())
+            foreach (var product in await repository.GetAllAsync())
             {
                 var productDto = productConverter.Convert(product);
                 productDtoList.Add(productDto);
@@ -32,11 +32,10 @@ namespace ProductApi.Controllers
             return productDtoList;
         }
 
-        // GET products/5
-        [HttpGet("{id}", Name="GetProduct")]
-        public IActionResult Get(int id)
+        [HttpGet("{id}", Name = "GetProduct")]
+        public async Task<IActionResult> GetAsync(int id)
         {
-            var item = repository.Get(id);
+            var item = await repository.GetAsync(id);
             if (item == null)
             {
                 return NotFound();
@@ -45,9 +44,8 @@ namespace ProductApi.Controllers
             return new ObjectResult(productDto);
         }
 
-        // POST products
         [HttpPost]
-        public IActionResult Post([FromBody] ProductDto productDto)
+        public async Task<IActionResult> PostAsync([FromBody] ProductDto productDto)
         {
             if (productDto == null)
             {
@@ -55,22 +53,21 @@ namespace ProductApi.Controllers
             }
 
             var product = productConverter.Convert(productDto);
-            var newProduct = repository.Add(product);
+            var newProduct = await repository.AddAsync(product);
 
             return CreatedAtRoute("GetProduct", new { id = newProduct.Id },
                 productConverter.Convert(newProduct));
         }
 
-        // PUT products/5
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] ProductDto productDto)
+        public async Task<IActionResult> PutAsync(int id, [FromBody] ProductDto productDto)
         {
             if (productDto == null || productDto.Id != id)
             {
                 return BadRequest();
             }
 
-            var modifiedProduct = repository.Get(id);
+            var modifiedProduct = await repository.GetAsync(id);
 
             if (modifiedProduct == null)
             {
@@ -82,20 +79,19 @@ namespace ProductApi.Controllers
             modifiedProduct.ItemsInStock = productDto.ItemsInStock;
             modifiedProduct.ItemsReserved = productDto.ItemsReserved;
 
-            repository.Edit(modifiedProduct);
+            await repository.EditAsync(modifiedProduct);
             return new NoContentResult();
         }
 
-        // DELETE products/5
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> DeleteAsync(int id)
         {
-            if (repository.Get(id) == null)
+            if (await repository.GetAsync(id) == null)
             {
                 return NotFound();
             }
 
-            repository.Remove(id);
+            await repository.RemoveAsync(id);
             return new NoContentResult();
         }
     }

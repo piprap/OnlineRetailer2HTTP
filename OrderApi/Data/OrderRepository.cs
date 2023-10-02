@@ -1,8 +1,9 @@
-﻿using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using OrderApi.Models;
-using System;
+using System.Threading.Tasks;
 
 namespace OrderApi.Data
 {
@@ -15,37 +16,40 @@ namespace OrderApi.Data
             db = context;
         }
 
-        Order IRepository<Order>.Add(Order entity)
+        public async Task<Order> AddAsync(Order entity)
         {
             if (entity.Date == null)
                 entity.Date = DateTime.Now;
-            
-            var newOrder = db.Orders.Add(entity).Entity;
-            db.SaveChanges();
-            return newOrder;
+
+            var newOrder = await db.Orders.AddAsync(entity);
+            await db.SaveChangesAsync();
+            return newOrder.Entity;
         }
 
-        void IRepository<Order>.Edit(Order entity)
+        public async Task EditAsync(Order entity)
         {
             db.Entry(entity).State = EntityState.Modified;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
         }
 
-        public Order Get(int id)
+        public async Task<Order> GetAsync(int id)
         {
-            return db.Orders.Include(o => o.OrderLines).FirstOrDefault(o => o.Id == id);
+            return await db.Orders.Include(o => o.OrderLines).FirstOrDefaultAsync(o => o.Id == id);
         }
 
-        IEnumerable<Order> IRepository<Order>.GetAll()
+        public async Task<IEnumerable<Order>> GetAllAsync()
         {
-            return db.Orders.Include(o => o.OrderLines).ToList();
+            return await db.Orders.Include(o => o.OrderLines).ToListAsync();
         }
 
-        void IRepository<Order>.Remove(int id)
+        public async Task RemoveAsync(int id)
         {
-            var order = db.Orders.FirstOrDefault(p => p.Id == id);
-            db.Orders.Remove(order);
-            db.SaveChanges();
+            var order = await db.Orders.FirstOrDefaultAsync(p => p.Id == id);
+            if (order != null)
+            {
+                db.Orders.Remove(order);
+                await db.SaveChangesAsync();
+            }
         }
     }
 }

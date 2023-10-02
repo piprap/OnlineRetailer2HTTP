@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
+using System.Threading.Tasks;
 using ProductApi.Models;
 
 namespace ProductApi.Data
@@ -14,34 +15,37 @@ namespace ProductApi.Data
             db = context;
         }
 
-        Product IRepository<Product>.Add(Product entity)
+        async Task<Product> IRepository<Product>.AddAsync(Product entity)
         {
             var newProduct = db.Products.Add(entity).Entity;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return newProduct;
         }
 
-        void IRepository<Product>.Edit(Product entity)
+        async Task IRepository<Product>.EditAsync(Product entity)
         {
             db.Entry(entity).State = EntityState.Modified;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
         }
 
-        Product IRepository<Product>.Get(int id)
+        async Task<Product> IRepository<Product>.GetAsync(int id)
         {
-            return db.Products.FirstOrDefault(p => p.Id == id);
+            return await db.Products.FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        IEnumerable<Product> IRepository<Product>.GetAll()
+        async Task<IEnumerable<Product>> IRepository<Product>.GetAllAsync()
         {
-            return db.Products.ToList();
+            return await db.Products.ToListAsync();
         }
 
-        void IRepository<Product>.Remove(int id)
+        async Task IRepository<Product>.RemoveAsync(int id)
         {
-            var product = db.Products.FirstOrDefault(p => p.Id == id);
-            db.Products.Remove(product);
-            db.SaveChanges();
+            var product = await db.Products.FirstOrDefaultAsync(p => p.Id == id);
+            if (product != null)
+            {
+                db.Products.Remove(product);
+                await db.SaveChangesAsync();
+            }
         }
     }
 }

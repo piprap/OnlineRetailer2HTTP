@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System;
+using System.Threading.Tasks;
 using CustomerApi.Models;
 
 namespace CustomerApi.Data
@@ -15,34 +16,37 @@ namespace CustomerApi.Data
             db = context;
         }
 
-        Customer IRepository<Customer>.Add(Customer entity)
-        {   
+        async Task<Customer> IRepository<Customer>.AddAsync(Customer entity)
+        {
             var newCustomer = db.Customers.Add(entity).Entity;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
             return newCustomer;
         }
 
-        void IRepository<Customer>.Edit(Customer entity)
+        async Task IRepository<Customer>.EditAsync(Customer entity)
         {
             db.Entry(entity).State = EntityState.Modified;
-            db.SaveChanges();
+            await db.SaveChangesAsync();
         }
 
-        Customer IRepository<Customer>.Get(int id)
+        async Task<Customer> IRepository<Customer>.GetAsync(int id)
         {
-            return db.Customers.FirstOrDefault(o => o.Id == id);
+            return await db.Customers.FirstOrDefaultAsync(o => o.Id == id);
         }
 
-        IEnumerable<Customer> IRepository<Customer>.GetAll()
+        async Task<IEnumerable<Customer>> IRepository<Customer>.GetAllAsync()
         {
-            return db.Customers.ToList();
+            return await db.Customers.ToListAsync();
         }
 
-        void IRepository<Customer>.Remove(int id)
+        async Task IRepository<Customer>.RemoveAsync(int id)
         {
-            var customer = db.Customers.FirstOrDefault(p => p.Id == id);
-            db.Customers.Remove(customer);
-            db.SaveChanges();
+            var customer = await db.Customers.FirstOrDefaultAsync(p => p.Id == id);
+            if (customer != null)
+            {
+                db.Customers.Remove(customer);
+                await db.SaveChangesAsync();
+            }
         }
     }
 }

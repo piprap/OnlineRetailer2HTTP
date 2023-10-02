@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using OrderApi.Data;
 using OrderApi.Helpers;
@@ -16,28 +17,23 @@ namespace OrderApi.Controllers
     {
         private readonly IRepository<Order> repository;
         private readonly EmailService _emailService;
-      //  private readonly OrderService _orderService;
 
-
-        public OrdersController(IRepository<Order> repos, EmailService emailService/*, OrderService orderService*/)
+        public OrdersController(IRepository<Order> repos, EmailService emailService)
         {
             repository = repos;
             _emailService = emailService;
-            //_orderService = orderService;
         }
 
-        // GET: orders
         [HttpGet]
-        public IEnumerable<Order> Get()
+        public async Task<IEnumerable<Order>> Get()
         {
-            return repository.GetAll();
+            return await repository.GetAllAsync();
         }
 
-        // GET orders/5
         [HttpGet("{id}", Name = "GetOrder")]
-        public IActionResult Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
-            var item = repository.Get(id);
+            var item = await repository.GetAsync(id);
             if (item == null)
             {
                 return NotFound();
@@ -45,28 +41,22 @@ namespace OrderApi.Controllers
             return new ObjectResult(item);
         }
 
-        // POST orders
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Order order) // Make the method asynchronous
+        public async Task<IActionResult> Post([FromBody] Order order)
         {
             if (order == null)
             {
                 return BadRequest();
             }
 
-            if (ProductItemsAvailable(order))
+            if (await ProductItemsAvailable(order))
             {
-                // Update the number of items reserved for the ordered products,
-                // and create a new order.
-                if (UpdateItemsReserved(order))
+                if (await UpdateItemsReserved(order))
                 {
-                    // Create order.
-                    var newOrder = repository.Add(order);
+                    var newOrder = await repository.AddAsync(order);
 
-                    // Send email
-                   await _emailService.SendEmailAsync();
+                    await _emailService.SendEmailAsync();
 
-                    // Set status to completed
                     order.Status = Order.OrderStatus.completed;
 
                     return CreatedAtRoute("GetOrder",
@@ -74,23 +64,39 @@ namespace OrderApi.Controllers
                 }
             }
 
-            // If the order could not be created, "return no content".
             return NoContent();
         }
 
-
-        private bool ProductItemsAvailable(Order order)
+        private async Task<bool> UpdateItemsReserved(Order order)
         {
             foreach (var orderLine in order.OrderLines)
             {
-                // Call product service to get the product ordered.
-                // You may need to change the port number in the BaseUrl below
-                // before you can run the request.
                 RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
-                var response = c.GetAsync<ProductDto>(request);
-                response.Wait();
-                var orderedProduct = response.Result;
+                var response = await c.GetAsync<ProductDto>(request);
+                var orderedProduct = response;
+
+                orderedProduct.ItemsInStock -= orderLine.Quantity;
+                orderedProduct.ItemsReserved += orderLine.Quantity;
+
+                var updateRequest = new RestRequest(orderedProduct.Id.ToString());
+                updateRequest.AddJsonBody(orderedProduct);
+                var updateResponse = await c.PutAsync(updateRequest);
+                if (!updateResponse.IsSuccessful)
+                    return false;
+            }
+            return true;
+        }
+
+        private async Task<bool> ProductItemsAvailable(Order order)
+        {
+            foreach (var orderLine in order.OrderLines)
+            {
+                RestClient c = new RestClient("http://product-service/products/");
+                var request = new RestRequest(orderLine.ProductId.ToString());
+                var response = await c.GetAsync<ProductDto>(request);
+                var orderedProduct = response;
+
                 if (orderLine.Quantity > orderedProduct.ItemsInStock - orderedProduct.ItemsReserved)
                 {
                     return false;
@@ -99,91 +105,15 @@ namespace OrderApi.Controllers
             return true;
         }
 
-        private bool UpdateItemsReserved(Order order)
-        {
-            foreach (var orderLine in order.OrderLines)
-            {
-                // Call product service to get the product ordered.
-                // You may need to change the port number in the BaseUrl below
-                // before you can run the request.
-                RestClient c = new RestClient("http://product-service/products/");
-                var request = new RestRequest(orderLine.ProductId.ToString());
-                var response = c.GetAsync<ProductDto>(request);
-                response.Wait();
-                var orderedProduct = response.Result;
-
-                orderedProduct.ItemsInStock -= orderLine.Quantity;
-                orderedProduct.ItemsReserved += orderLine.Quantity;
-
-                // Call product service to update the number of items reserved
-                var updateRequest = new RestRequest(orderedProduct.Id.ToString());
-                updateRequest.AddJsonBody(orderedProduct);
-                var updateResponse = c.PutAsync(updateRequest);
-                updateResponse.Wait();
-                if (!updateResponse.IsCompletedSuccessfully)
-                    return false;
-
-            }
-            return true;
-        }
-
-        
-        // Update status function
-        // mangler stadig noget arbejde - har ikke lige gjort mig tanker om hvordan den skal kunne kaldes endnu og den skal vel også tage imod
-        // et id som der skal opdateres på. men dette er et meget godt udkast taget i betragtning hvor zank jeg er lige nu xD
-        private async Task<bool> UpdateStatus(Order order, string newStatus) //parse ny status
-        {
-            RestClient c = new RestClient("http://order-service/Order/");
-            var getRequest = new RestRequest(order.Id.ToString());
-            var getResponse = await c.GetAsync<Order>(getRequest);
-
-            if(newStatus == "shipped")
-            {
-                order.Status = Order.OrderStatus.shipped;
-            }
-
-
-            if (getResponse != null)
-            {
-                if (order.Status == Order.OrderStatus.completed)
-                {
-                    getResponse.Status = Order.OrderStatus.shipped;
-                    // her skal product in stock opdateres (-)
-                }
-                else
-                {
-                    getResponse.Status = Order.OrderStatus.cancelled;
-                    // her skal product reserved opdateres (+) (i guess?)
-                }
-
-                var updateRequest = new RestRequest(getResponse.Id.ToString(), Method.Put);
-                updateRequest.AddJsonBody(getResponse);
-                var updateResponse = await c.ExecuteAsync(updateRequest);
-
-                if (updateResponse.IsSuccessful)
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-
-        // PUT order/5
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] Order order)
+        public async Task<IActionResult> Put(int id, [FromBody] Order order)
         {
             if (order == null || order.Id != id)
             {
                 return BadRequest();
             }
 
-            var modifiedOrder = repository.Get(id);
-
-            Console.WriteLine("original order OrderLines: " + order.OrderLines);
-
-            Console.WriteLine("BEFORE OrderLines: " + modifiedOrder.OrderLines);
+            var modifiedOrder = await repository.GetAsync(id);
 
             if (modifiedOrder == null)
             {
@@ -193,128 +123,86 @@ namespace OrderApi.Controllers
             modifiedOrder.CustomerId = order.CustomerId;
             modifiedOrder.Status = order.Status;
 
-
-            repository.Edit(modifiedOrder);
+            await repository.EditAsync(modifiedOrder);
             return Ok(200);
         }
 
-        // PUT orders/5/cancel
-        // This action method cancels an order and publishes an OrderStatusChangedMessage
-        // with topic set to "cancelled".
         [HttpPut("{id}/cancel")]
         public async Task<IActionResult> Cancel(int id)
         {
-            /*RestClient c = new RestClient("http://order-service/Order/");
-            var getRequest = new RestRequest(id.ToString());
-            var getResponse = await c.GetAsync<Order>(getRequest);*/
-
-            var getResponse = repository.Get(id);
-          //  var getResponse = await _orderService.UpdateOrderAsync(id);
+            var getResponse = await repository.GetAsync(id);
 
             if (getResponse == null)
             {
                 return BadRequest("No order found");
             }
+
             getResponse.Status = Order.OrderStatus.cancelled;
-
-
-
-            repository.Edit(getResponse);
-
+            await repository.EditAsync(getResponse);
 
             foreach (var orderLine in getResponse.OrderLines)
             {
-
                 RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
-                var response = c.GetAsync<ProductDto>(request);
-                response.Wait();
-                var orderedProduct = response.Result;
+                var response = await c.GetAsync<ProductDto>(request);
+                var orderedProduct = response;
 
                 orderedProduct.ItemsReserved -= orderLine.Quantity;
                 orderedProduct.ItemsInStock += orderLine.Quantity;
 
-
-                var updateRequest = new RestRequest(response.Id.ToString());
+                var updateRequest = new RestRequest(orderedProduct.Id.ToString());
                 updateRequest.AddJsonBody(orderedProduct);
-                var updateResponse = c.PutAsync(updateRequest);
-                updateResponse.Wait();
-
+                var updateResponse = await c.PutAsync(updateRequest);
             }
 
             return Ok("Very bad order cancel :(");
-
-            // Add code to implement this method.
         }
-     
-        // PUT orders/5/ship
-        // This action method ships an order and publishes an OrderStatusChangedMessage.
-        // with topic set to "shipped".
+
         [HttpPut("{id}/ship")]
         public async Task<IActionResult> Ship(int id)
         {
-            var getResponse = repository.Get(id);
-            //  var getResponse = await _orderService.UpdateOrderAsync(id);
+            var getResponse = await repository.GetAsync(id);
 
             if (getResponse == null)
             {
                 return BadRequest("No order found");
             }
+
             getResponse.Status = Order.OrderStatus.shipped;
-
-
-
-            repository.Edit(getResponse);
-
+            await repository.EditAsync(getResponse);
 
             foreach (var orderLine in getResponse.OrderLines)
             {
-
                 RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
-                var response = c.GetAsync<ProductDto>(request);
-                response.Wait();
-                var orderedProduct = response.Result;
+                var response = await c.GetAsync<ProductDto>(request);
+                var orderedProduct = response;
 
                 orderedProduct.ItemsReserved -= orderLine.Quantity;
                 orderedProduct.ItemsInStock -= orderLine.Quantity;
 
-                var updateRequest = new RestRequest(response.Id.ToString());
+                var updateRequest = new RestRequest(orderedProduct.Id.ToString());
                 updateRequest.AddJsonBody(orderedProduct);
-                var updateResponse = c.PutAsync(updateRequest);
-                updateResponse.Wait();
-
+                var updateResponse = await c.PutAsync(updateRequest);
             }
-            return Ok("order on the way");
 
-            // Add code to implement this method.
+            return Ok("order on the way");
         }
 
-        // PUT orders/5/pay
-        // This action method marks an order as paid and publishes a CreditStandingChangedMessage
-        // (which have not yet been implemented), if the credit standing changes.
         [HttpPut("{id}/pay")]
         public async Task<IActionResult> Pay(int id)
         {
-            var getResponse = repository.Get(id);
-            //  var getResponse = await _orderService.UpdateOrderAsync(id);
+            var getResponse = await repository.GetAsync(id);
 
             if (getResponse == null)
             {
                 return BadRequest("No order found");
             }
+
             getResponse.Status = Order.OrderStatus.paid;
-
-            //get customer update creditstanding?
-
-            repository.Edit(getResponse);
+            await repository.EditAsync(getResponse);
 
             return Ok("$$");
-
-            // Add code to implement this method.
         }
-     
-
-
     }
 }

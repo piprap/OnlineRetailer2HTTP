@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using CustomerApi.Data;
 using CustomerApi.Models;
 using Microsoft.AspNetCore.Mvc;
-using RestSharp;
 
 namespace CustomerApi.Controllers
 {
@@ -18,18 +18,16 @@ namespace CustomerApi.Controllers
             repository = repos;
         }
 
-        // GET: customers
         [HttpGet]
-        public IEnumerable<Customer> Get()
+        public async Task<IEnumerable<Customer>> Get()
         {
-            return repository.GetAll();
+            return await repository.GetAllAsync();
         }
 
-        // GET customers/5
         [HttpGet("{id}", Name = "GetCustomer")]
-        public IActionResult Get(int id)
+        public async Task<IActionResult> Get(int id)
         {
-            var item = repository.Get(id);
+            var item = await repository.GetAsync(id);
             if (item == null)
             {
                 return NotFound();
@@ -37,30 +35,28 @@ namespace CustomerApi.Controllers
             return new ObjectResult(item);
         }
 
-        // POST customers
         [HttpPost]
-        public IActionResult Post([FromBody] Customer customer)
+        public async Task<IActionResult> Post([FromBody] Customer customer)
         {
             if (customer == null)
             {
                 return BadRequest();
             }
 
-            var newCustomer = repository.Add(customer);
+            var newCustomer = await repository.AddAsync(customer);
 
             return CreatedAtRoute("GetCustomer", new { id = newCustomer.Id }, newCustomer);
         }
 
-        // PUT customers/5
         [HttpPut("{id}")]
-        public IActionResult Put(int id, [FromBody] Customer customer)
+        public async Task<IActionResult> Put(int id, [FromBody] Customer customer)
         {
             if (customer == null || customer.Id != id)
             {
                 return BadRequest();
             }
 
-            var modifiedCustomer = repository.Get(id);
+            var modifiedCustomer = await repository.GetAsync(id);
 
             if (modifiedCustomer == null)
             {
@@ -75,23 +71,20 @@ namespace CustomerApi.Controllers
             modifiedCustomer.AddressShipping = customer.AddressShipping;
             modifiedCustomer.CreditStanding = customer.CreditStanding;
 
-
-            repository.Edit(modifiedCustomer);
+            await repository.EditAsync(modifiedCustomer);
             return new NoContentResult();
         }
 
-        // DELETE customers/5
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            if (repository.Get(id) == null)
+            if (await repository.GetAsync(id) == null)
             {
                 return NotFound();
             }
 
-            repository.Remove(id);
+            await repository.RemoveAsync(id);
             return new NoContentResult();
         }
-
     }
 }
