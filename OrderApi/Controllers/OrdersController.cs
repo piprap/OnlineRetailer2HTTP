@@ -1,13 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO.Pipes;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using OrderApi.Data;
 using OrderApi.Helpers;
-using OrderApi.Models;
+using OrderApi.Infrastructure;
+//using OrderApi.Models;
 using RestSharp;
 using SharedModels;
 using SharedModels.Services;
+//using SharedModels;
 
 namespace OrderApi.Controllers
 {
@@ -17,11 +20,16 @@ namespace OrderApi.Controllers
     {
         private readonly IRepository<Order> repository;
         private readonly EmailService _emailService;
+        private readonly IMessagePublisher _messagePublisher;
+        IServiceGateway<ProductDto> _productServiceGateway;
 
-        public OrdersController(IRepository<Order> repos, EmailService emailService)
+
+        public OrdersController(IRepository<Order> repos, EmailService emailService, IMessagePublisher messagePublisher, IServiceGateway<ProductDto> productServiceGateway)
         {
             repository = repos;
             _emailService = emailService;
+            _messagePublisher = messagePublisher;
+            _productServiceGateway = productServiceGateway;
         }
 
         [HttpGet]
@@ -48,6 +56,17 @@ namespace OrderApi.Controllers
             {
                 return BadRequest();
             }
+
+            RestClient c = new RestClient("http://customer-service/Customer/");
+            var getRequest = new RestRequest(order.CustomerId.ToString());
+            var getResponse = await c.GetAsync<CustomerDto>(getRequest);
+            Console.Write("Credit stading: " + getResponse.CreditStanding);
+            if (!getResponse.CreditStanding)
+            {
+                Console.WriteLine("Customer bad credit stading");
+                return UnprocessableEntity();
+            }
+
 
             if (await ProductItemsAvailable(order))
             {
@@ -88,15 +107,12 @@ namespace OrderApi.Controllers
             return true;
         }
 
-        private async Task<bool> ProductItemsAvailable(Order order)
+     /*   private bool ProductItemsAvailable(Order order)
         {
             foreach (var orderLine in order.OrderLines)
             {
-                RestClient c = new RestClient("http://product-service/products/");
-                var request = new RestRequest(orderLine.ProductId.ToString());
-                var response = await c.GetAsync<ProductDto>(request);
-                var orderedProduct = response;
-
+                // Call product service to get the product ordered.
+                var orderedProduct = _productServiceGateway.Get(orderLine.ProductId);
                 if (orderLine.Quantity > orderedProduct.ItemsInStock - orderedProduct.ItemsReserved)
                 {
                     return false;
@@ -104,6 +120,24 @@ namespace OrderApi.Controllers
             }
             return true;
         }
+     */
+        //med http
+          private async Task<bool> ProductItemsAvailable(Order order)
+          {
+              foreach (var orderLine in order.OrderLines)
+              {
+                  RestClient c = new RestClient("http://product-service/products/");
+                  var request = new RestRequest(orderLine.ProductId.ToString());
+                  var response = await c.GetAsync<ProductDto>(request);
+                  var orderedProduct = response;
+
+                  if (orderLine.Quantity > orderedProduct.ItemsInStock - orderedProduct.ItemsReserved)
+                  {
+                      return false;
+                  }
+              }
+              return true;
+          }
 
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(int id, [FromBody] Order order)
@@ -137,8 +171,12 @@ namespace OrderApi.Controllers
                 return BadRequest("No order found");
             }
 
+            //  getResponse.Status = Order.OrderStatus.cancelled;
+
             getResponse.Status = Order.OrderStatus.cancelled;
             await repository.EditAsync(getResponse);
+
+
 
             foreach (var orderLine in getResponse.OrderLines)
             {

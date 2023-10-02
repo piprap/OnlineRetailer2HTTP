@@ -29,3 +29,7 @@ services:
     ports:
     - 9004:80
     restart: on-failure
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+    - "15673:15672"

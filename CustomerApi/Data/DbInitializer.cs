@@ -13,7 +13,6 @@ namespace CustomerApi.Data
             context.Database.EnsureDeleted();
             context.Database.EnsureCreated();
 
-            // Look for any Products
             if (context.Customers.Any())
             {
                 return;   // DB has been seeded
@@ -21,7 +20,8 @@ namespace CustomerApi.Data
 
             List<Customer> customers = new List<Customer>
             {
-                new Customer { CompanyName = "TestCompany", RegistrationNumber = 1, Email = "test@mail.dk", PhoneNumber = "75757575", AddressBilling = "testvej", AddressShipping = "testvej 2", CreditStanding = true }
+                new Customer { CompanyName = "TestCompany", RegistrationNumber = 1, Email = "test@mail.dk", PhoneNumber = "75757575", AddressBilling = "testvej", AddressShipping = "testvej 2", CreditStanding = true },
+                new Customer { CompanyName = "ggCompany", RegistrationNumber = 1, Email = "ggCompany@mail.dk", PhoneNumber = "55542055", AddressBilling = "ostervej", AddressShipping = "ostvej 2", CreditStanding = false }
             };
 
             Console.WriteLine(customers);

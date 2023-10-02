@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using OrderApi.Models;
+using SharedModels;
 using System.Threading.Tasks;
 
 namespace OrderApi.Data

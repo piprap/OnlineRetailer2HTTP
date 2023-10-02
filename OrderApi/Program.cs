@@ -1,12 +1,15 @@
 using Microsoft.EntityFrameworkCore;
 using OrderApi.Data;
 using OrderApi.Helpers;
-using OrderApi.Models;
+using OrderApi.Infrastructure;
+using SharedModels;
 using SharedModels.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+string cloudAMQPConnectionString = "host=rabbitmq";
+
 
 builder.Services.AddDbContext<OrderApiContext>(opt => opt.UseInMemoryDatabase("OrdersDb"));
 
@@ -19,6 +22,10 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddTransient<IDbInitializer, DbInitializer>();
 
 builder.Services.AddSingleton(new EmailApiClient("http://email-service/Email/"));
+
+builder.Services.AddSingleton<IMessagePublisher>(new MessagePublisher(cloudAMQPConnectionString));
+
+
 
 builder.Services.AddControllers();
 
