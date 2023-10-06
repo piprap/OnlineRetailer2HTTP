@@ -2,6 +2,6 @@
 {
     public interface IServiceGateway<T>
     {
-        T Get(int id);
+        Task<T> GetAsync(int id);
     }
 }

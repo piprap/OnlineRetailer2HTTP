@@ -6,11 +6,9 @@ using Microsoft.AspNetCore.Mvc;
 using OrderApi.Data;
 using OrderApi.Helpers;
 using OrderApi.Infrastructure;
-//using OrderApi.Models;
 using RestSharp;
 using SharedModels;
 using SharedModels.Services;
-//using SharedModels;
 
 namespace OrderApi.Controllers
 {
@@ -110,12 +108,12 @@ namespace OrderApi.Controllers
             return true;
         }
 
-     /*   private async Task<bool> ProductItemsAvailable(Order order)
+        private async Task<bool> ProductItemsAvailable(Order order)
         {
             foreach (var orderLine in order.OrderLines)
             {
                 // Call product service to get the product ordered.
-                var orderedProduct = await _productServiceGateway.Get(orderLine.ProductId);
+                var orderedProduct = await _productServiceGateway.GetAsync(orderLine.ProductId);
                 if (orderLine.Quantity > orderedProduct.ItemsInStock - orderedProduct.ItemsReserved)
                 {
                     return false;
@@ -123,7 +121,7 @@ namespace OrderApi.Controllers
             }
             return true;
         }
-     */
+     /*
         //med http
           private async Task<bool> ProductItemsAvailable(Order order)
           {
@@ -141,7 +139,7 @@ namespace OrderApi.Controllers
               }
               return true;
           }
-
+     */
         [HttpPut("{id}")]
         public async Task<IActionResult> Put(int id, [FromBody] Order order)
         {
@@ -167,21 +165,22 @@ namespace OrderApi.Controllers
         [HttpPut("{id}/cancel")]
         public async Task<IActionResult> Cancel(int id)
         {
-            var getResponse = await repository.GetAsync(id);
+            var order = await repository.GetAsync(id);
 
-            if (getResponse == null)
+            if (order == null)
             {
                 return BadRequest("No order found");
             }
 
-            //  getResponse.Status = Order.OrderStatus.cancelled;
+            _messagePublisher.PublishOrderStatusChangedMessage(
+            order.CustomerId, order.OrderLines, "cancelled");
 
-            getResponse.Status = Order.OrderStatus.cancelled;
-            await repository.EditAsync(getResponse);
+            order.Status = Order.OrderStatus.cancelled;
+            await repository.EditAsync(order);
 
 
 
-            foreach (var orderLine in getResponse.OrderLines)
+            foreach (var orderLine in order.OrderLines)
             {
                 RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
@@ -202,17 +201,19 @@ namespace OrderApi.Controllers
         [HttpPut("{id}/ship")]
         public async Task<IActionResult> Ship(int id)
         {
-            var getResponse = await repository.GetAsync(id);
+            var order = await repository.GetAsync(id);
 
-            if (getResponse == null)
+            if (order == null)
             {
                 return BadRequest("No order found");
             }
+            _messagePublisher.PublishOrderStatusChangedMessage(
+                       order.CustomerId, order.OrderLines, "shipped");
 
-            getResponse.Status = Order.OrderStatus.shipped;
-            await repository.EditAsync(getResponse);
+            order.Status = Order.OrderStatus.shipped;
+            await repository.EditAsync(order);
 
-            foreach (var orderLine in getResponse.OrderLines)
+            foreach (var orderLine in order.OrderLines)
             {
                 RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
@@ -230,18 +231,37 @@ namespace OrderApi.Controllers
             return Ok("order on the way");
         }
 
+        /* [HttpPut("{id}/pay")]
+         public async Task<IActionResult> Pay(int id)
+         {
+             var getResponse = await repository.GetAsync(id);
+
+             if (getResponse == null)
+             {
+                 return BadRequest("No order found");
+             }
+
+             getResponse.Status = Order.OrderStatus.paid;
+             await repository.EditAsync(getResponse);
+
+             return Ok("$$");
+         }
+        */
         [HttpPut("{id}/pay")]
         public async Task<IActionResult> Pay(int id)
         {
-            var getResponse = await repository.GetAsync(id);
+            var order = await repository.GetAsync(id);
 
-            if (getResponse == null)
+            if (order == null)
             {
                 return BadRequest("No order found");
             }
 
-            getResponse.Status = Order.OrderStatus.paid;
-            await repository.EditAsync(getResponse);
+            _messagePublisher.PublishOrderStatusChangedMessage(
+                       order.CustomerId, order.OrderLines, "payed");
+
+            order.Status = Order.OrderStatus.paid;
+            await repository.EditAsync(order);
 
             return Ok("$$");
         }
