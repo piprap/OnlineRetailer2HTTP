@@ -7,6 +7,8 @@ using SharedModels.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+string productServiceBaseUrl = "http://product-service/products/";
+
 // Add services to the container.
 string cloudAMQPConnectionString = "host=rabbitmq";
 
@@ -22,6 +24,9 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddTransient<IDbInitializer, DbInitializer>();
 
 builder.Services.AddSingleton(new EmailApiClient("http://email-service/Email/"));
+
+// Register product service gateway for dependency injection
+builder.Services.AddSingleton<IServiceGateway<ProductDto>>(new ProductServiceGateway(productServiceBaseUrl));
 
 builder.Services.AddSingleton<IMessagePublisher>(new MessagePublisher(cloudAMQPConnectionString));
 

@@ -72,6 +72,9 @@ namespace OrderApi.Controllers
             {
                 if (await UpdateItemsReserved(order))
                 {
+                    _messagePublisher.PublishOrderStatusChangedMessage(
+                       order.CustomerId, order.OrderLines, "completed");
+
                     var newOrder = await repository.AddAsync(order);
 
                     await _emailService.SendEmailAsync();
@@ -107,12 +110,12 @@ namespace OrderApi.Controllers
             return true;
         }
 
-     /*   private bool ProductItemsAvailable(Order order)
+     /*   private async Task<bool> ProductItemsAvailable(Order order)
         {
             foreach (var orderLine in order.OrderLines)
             {
                 // Call product service to get the product ordered.
-                var orderedProduct = _productServiceGateway.Get(orderLine.ProductId);
+                var orderedProduct = await _productServiceGateway.Get(orderLine.ProductId);
                 if (orderLine.Quantity > orderedProduct.ItemsInStock - orderedProduct.ItemsReserved)
                 {
                     return false;
