@@ -68,17 +68,17 @@ namespace OrderApi.Controllers
 
             if (await ProductItemsAvailable(order))
             {
-                    _messagePublisher.PublishOrderStatusChangedMessage(
-                       order.CustomerId, order.OrderLines, "completed");
+                _messagePublisher.PublishOrderStatusChangedMessage(
+                    order.CustomerId, order.OrderLines, "completed");
 
-                    var newOrder = await repository.AddAsync(order);
+                var newOrder = await repository.AddAsync(order);
 
-                    await _emailService.SendEmailAsync();
+                await _emailService.SendEmailAsync();
 
-                    order.Status = Order.OrderStatus.completed;
+                order.Status = Order.OrderStatus.completed;
 
-                    return CreatedAtRoute("GetOrder",
-                        new { id = newOrder.Id }, newOrder);
+                return CreatedAtRoute("GetOrder",
+                    new { id = newOrder.Id }, newOrder);
             }
 
             return NoContent();
@@ -175,8 +175,8 @@ namespace OrderApi.Controllers
             order.Status = Order.OrderStatus.cancelled;
             await repository.EditAsync(order);
 
-
-
+            //Old HTTP implementation:
+            /*
             foreach (var orderLine in order.OrderLines)
             {
                 RestClient c = new RestClient("http://product-service/products/");
@@ -190,7 +190,7 @@ namespace OrderApi.Controllers
                 var updateRequest = new RestRequest(orderedProduct.Id.ToString());
                 updateRequest.AddJsonBody(orderedProduct);
                 var updateResponse = await c.PutAsync(updateRequest);
-            }
+            }*/
 
             return Ok("Very bad order cancel :(");
         }
@@ -210,7 +210,8 @@ namespace OrderApi.Controllers
             order.Status = Order.OrderStatus.shipped;
             await repository.EditAsync(order);
 
-            foreach (var orderLine in order.OrderLines)
+            //Old HTTP implementation:
+           /* foreach (var orderLine in order.OrderLines)
             {
                 RestClient c = new RestClient("http://product-service/products/");
                 var request = new RestRequest(orderLine.ProductId.ToString());
@@ -223,7 +224,7 @@ namespace OrderApi.Controllers
                 var updateRequest = new RestRequest(orderedProduct.Id.ToString());
                 updateRequest.AddJsonBody(orderedProduct);
                 var updateResponse = await c.PutAsync(updateRequest);
-            }
+            }*/
 
             return Ok("order on the way");
         }

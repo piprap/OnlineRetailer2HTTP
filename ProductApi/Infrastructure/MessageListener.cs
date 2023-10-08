@@ -4,6 +4,7 @@ using EasyNetQ;
 using Microsoft.Extensions.DependencyInjection;
 using ProductApi.Data;
 using ProductApi.Models;
+using RabbitMQ.Client.Logging;
 using SharedModels;
 
 namespace ProductApi.Infrastructure
@@ -69,6 +70,7 @@ namespace ProductApi.Infrastructure
 
                 // Reserve items of ordered product (should be a single transaction).
                 // Beware that this operation is not idempotent.
+
                 foreach (var orderLine in message.OrderLines)
                 {
                     var product = await productRepos.GetAsync(orderLine.ProductId);
@@ -93,7 +95,7 @@ namespace ProductApi.Infrastructure
                 foreach (var orderLine in message.OrderLines)
                 {
                     var product = await productRepos.GetAsync(orderLine.ProductId);
-                    product.ItemsReserved += orderLine.Quantity;
+                    product.ItemsReserved -= orderLine.Quantity;
                     await productRepos.EditAsync(product);
                 }
             }
@@ -120,7 +122,9 @@ namespace ProductApi.Infrastructure
                 foreach (var orderLine in message.OrderLines)
                 {
                     var product = await productRepos.GetAsync(orderLine.ProductId);
-                    product.ItemsReserved += orderLine.Quantity;
+                    product.ItemsReserved -= orderLine.Quantity;
+                    product.ItemsInStock -= orderLine.Quantity;
+
                     await productRepos.EditAsync(product);
                 }
             }
