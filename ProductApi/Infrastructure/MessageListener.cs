@@ -29,6 +29,15 @@ namespace ProductApi.Infrastructure
                 bus.PubSub.Subscribe<OrderStatusChangedMessage>("productApiCompleted",
                     HandleOrderCompleted, x => x.WithTopic("completed"));
 
+                bus.PubSub.Subscribe<OrderStatusChangedMessage>("productApiCancelled",
+                    HandleOrderCancelled, x => x.WithTopic("cancelled"));
+
+                bus.PubSub.Subscribe<OrderStatusChangedMessage>("productApiShipped",
+                    HandleOrderShipped, x => x.WithTopic("shipped"));
+
+                bus.PubSub.Subscribe<OrderStatusChangedMessage>("productApiPayed",
+                    HandleOrderPayed, x => x.WithTopic("payed"));
+
                 // Add code to subscribe to other OrderStatusChanged events:
                 // * cancelled
                 // * shipped
@@ -69,5 +78,52 @@ namespace ProductApi.Infrastructure
             }
         }
 
+        private async void HandleOrderCancelled(OrderStatusChangedMessage message)
+        {
+            // A service scope is created to get an instance of the product repository.
+            // When the service scope is disposed, the product repository instance will
+            // also be disposed.
+            using (var scope = provider.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var productRepos = services.GetService<IRepository<Product>>();
+
+                // Reserve items of ordered product (should be a single transaction).
+                // Beware that this operation is not idempotent.
+                foreach (var orderLine in message.OrderLines)
+                {
+                    var product = await productRepos.GetAsync(orderLine.ProductId);
+                    product.ItemsReserved += orderLine.Quantity;
+                    await productRepos.EditAsync(product);
+                }
+            }
+        }
+
+        private async void HandleOrderPayed(OrderStatusChangedMessage message)
+        {
+            await Task.Delay(500);
+            Console.WriteLine("Payed");
+        }
+
+        private async void HandleOrderShipped(OrderStatusChangedMessage message)
+        {
+            // A service scope is created to get an instance of the product repository.
+            // When the service scope is disposed, the product repository instance will
+            // also be disposed.
+            using (var scope = provider.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+                var productRepos = services.GetService<IRepository<Product>>();
+
+                // Reserve items of ordered product (should be a single transaction).
+                // Beware that this operation is not idempotent.
+                foreach (var orderLine in message.OrderLines)
+                {
+                    var product = await productRepos.GetAsync(orderLine.ProductId);
+                    product.ItemsReserved += orderLine.Quantity;
+                    await productRepos.EditAsync(product);
+                }
+            }
+        }
     }
 }

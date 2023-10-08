@@ -14,8 +14,8 @@ namespace SharedModels
         public enum OrderStatus
         {
             cancelled, // -product reservation * quantity 
-            completed, // +prodcut reservation * quantity 
-            shipped, // +
+            completed, // +product reservation * quantity 
+            shipped, // -product reservation & stock * quantity
             paid //
         }
     }

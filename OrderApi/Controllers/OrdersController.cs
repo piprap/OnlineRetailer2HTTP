@@ -68,8 +68,6 @@ namespace OrderApi.Controllers
 
             if (await ProductItemsAvailable(order))
             {
-                //if (await UpdateItemsReserved(order))
-                //{
                     _messagePublisher.PublishOrderStatusChangedMessage(
                        order.CustomerId, order.OrderLines, "completed");
 
@@ -81,13 +79,12 @@ namespace OrderApi.Controllers
 
                     return CreatedAtRoute("GetOrder",
                         new { id = newOrder.Id }, newOrder);
-                //}
             }
 
             return NoContent();
         }
 
-        private async Task<bool> UpdateItemsReserved(Order order)
+        /*private async Task<bool> UpdateItemsReserved(Order order)
         {
             foreach (var orderLine in order.OrderLines)
             {
@@ -106,7 +103,7 @@ namespace OrderApi.Controllers
                     return false;
             }
             return true;
-        }
+        }*/
 
         private async Task<bool> ProductItemsAvailable(Order order)
         {
@@ -231,22 +228,6 @@ namespace OrderApi.Controllers
             return Ok("order on the way");
         }
 
-        /* [HttpPut("{id}/pay")]
-         public async Task<IActionResult> Pay(int id)
-         {
-             var getResponse = await repository.GetAsync(id);
-
-             if (getResponse == null)
-             {
-                 return BadRequest("No order found");
-             }
-
-             getResponse.Status = Order.OrderStatus.paid;
-             await repository.EditAsync(getResponse);
-
-             return Ok("$$");
-         }
-        */
         [HttpPut("{id}/pay")]
         public async Task<IActionResult> Pay(int id)
         {
