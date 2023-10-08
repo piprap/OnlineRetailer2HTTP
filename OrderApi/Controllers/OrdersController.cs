@@ -68,8 +68,8 @@ namespace OrderApi.Controllers
 
             if (await ProductItemsAvailable(order))
             {
-                if (await UpdateItemsReserved(order))
-                {
+                //if (await UpdateItemsReserved(order))
+                //{
                     _messagePublisher.PublishOrderStatusChangedMessage(
                        order.CustomerId, order.OrderLines, "completed");
 
@@ -81,7 +81,7 @@ namespace OrderApi.Controllers
 
                     return CreatedAtRoute("GetOrder",
                         new { id = newOrder.Id }, newOrder);
-                }
+                //}
             }
 
             return NoContent();

@@ -51,7 +51,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Create a message listener in a separate thread.
-await Task.Factory.StartNew(() =>
+Task.Factory.StartNew(() =>
     new MessageListener(app.Services, cloudAMQPConnectionString).Start());
 
 //app.UseHttpsRedirection();
