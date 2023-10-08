@@ -1,9 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using ProductApi.Data;
+using ProductApi.Infrastructure;
 using ProductApi.Models;
 using SharedModels;
 
 var builder = WebApplication.CreateBuilder(args);
+
+string cloudAMQPConnectionString = "host=rabbitmq";
 
 // Add services to the container.
 
@@ -31,6 +34,7 @@ var app = builder.Build();
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
 app.UseCors(config => config
     .AllowAnyOrigin()
     .AllowAnyHeader()
@@ -45,6 +49,10 @@ using (var scope = app.Services.CreateScope())
     var dbInitializer = services.GetService<IDbInitializer>();
     dbInitializer.Initialize(dbContext);
 }
+
+// Create a message listener in a separate thread.
+await Task.Factory.StartNew(() =>
+    new MessageListener(app.Services, cloudAMQPConnectionString).Start());
 
 //app.UseHttpsRedirection();
 
