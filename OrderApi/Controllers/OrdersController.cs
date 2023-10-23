@@ -210,22 +210,6 @@ namespace OrderApi.Controllers
             order.Status = Order.OrderStatus.shipped;
             await repository.EditAsync(order);
 
-            //Old HTTP implementation:
-           /* foreach (var orderLine in order.OrderLines)
-            {
-                RestClient c = new RestClient("http://product-service/products/");
-                var request = new RestRequest(orderLine.ProductId.ToString());
-                var response = await c.GetAsync<ProductDto>(request);
-                var orderedProduct = response;
-
-                orderedProduct.ItemsReserved -= orderLine.Quantity;
-                orderedProduct.ItemsInStock -= orderLine.Quantity;
-
-                var updateRequest = new RestRequest(orderedProduct.Id.ToString());
-                updateRequest.AddJsonBody(orderedProduct);
-                var updateResponse = await c.PutAsync(updateRequest);
-            }*/
-
             return Ok("order on the way");
         }
 
