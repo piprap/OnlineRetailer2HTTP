@@ -11,7 +11,7 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/productapi/{catchAll}",
+      "UpstreamPathTemplate": "/product-service/{catchAll}",
       "UpstreamHttpMethod": [ "Get" ]
     },
 
@@ -25,7 +25,33 @@
           "Port": 80
         }
       ],
-      "UpstreamPathTemplate": "/orderapi/{catchAll}",
+      "UpstreamPathTemplate": "/order-service/{catchAll}",
+      "UpstreamHttpMethod": [ "Get", "Post" ]
+    },
+    {
+      // EmailApi routes
+      "DownstreamPathTemplate": "/{catchAll}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "orderapi",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/email-service/{catchAll}",
+      "UpstreamHttpMethod": [ "Get", "Post" ]
+    },
+    {
+      // CustomerApi routes
+      "DownstreamPathTemplate": "/{catchAll}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "orderapi",
+          "Port": 80
+        }
+      ],
+      "UpstreamPathTemplate": "/customer-service/{catchAll}",
       "UpstreamHttpMethod": [ "Get", "Post" ]
     }
   ],
