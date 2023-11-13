@@ -1,6 +1,7 @@
 using CustomerApi.Data;
 using CustomerApi.Models;
 using Microsoft.EntityFrameworkCore;
+using Prometheus;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,8 +46,18 @@ using (var scope = app.Services.CreateScope())
 
 //app.UseHttpsRedirection();
 
+// Create a message listener in a separate thread.
+Task.Factory.StartNew(() =>
+    new MessageListener(app.Services, connectionString).Start());
+
+//app.UseHttpsRedirection();
+
+app.UseHttpMetrics();
+
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapMetrics();
 
 app.Run();
